@@ -72,7 +72,6 @@ The minimum bootable system:
 - `bc` — command-line calculator
 - `patch` — source patching
 - `diffutils` — file comparison utilities
-- `file` — file type identification
 
 ### Minimal + X11
 
