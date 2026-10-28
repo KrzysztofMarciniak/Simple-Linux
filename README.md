@@ -56,6 +56,11 @@ The minimum bootable system:
 
 **Goals:** Rebuild the base system, develop primarily in C, and perform lightweight web access from the command line.
 
+## User
+adds a user `0x00` and sets hostname to antarctica.
+
+## Packages
+
 - Linux kernel, musl libc, and BusyBox build support
 - Manual pages
 - [Ark](https://github.com/KrzysztofMarciniak/Ark) — source-based package manager
