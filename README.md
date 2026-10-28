@@ -1,6 +1,23 @@
-# Simple-Linux
+# SimpleLinux
 
 > **WORK IN PROGRESS**
 
-A self-contained, minimal Linux programming workstation built with **uClibc-ng, BusyBox, and LLVM/Clang**, powered by the **Ark** package manager.
-**Boot it, develop in it, modify it, rebuild it, and stay offline unless you deliberately choose to fetch something.**
+A minimal Linux distribution built from source using the **Linux kernel, musl libc, LLVM/Clang, and BusyBox**.
+
+to build kernel, musl and busybox
+```
+make
+```
+to rebuild rootfs (after changing in Makefile inittab etc.)
+```
+make rootfs
+```
+clean
+```
+make clean
+```
+boot iso with qemu 
+```
+./run_qemu.sh
+```
+
