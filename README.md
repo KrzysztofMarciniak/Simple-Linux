@@ -1,5 +1,7 @@
 # SimpleLinux
 
+![Project Logo](Logo.png)
+
 > **WORK IN PROGRESS**
 
 SimpleLinux (SL) is a minimal, developer-first Linux distribution built from source, using the **Linux kernel, musl libc, LLVM/Clang, and BusyBox**.
@@ -57,15 +59,16 @@ The minimum bootable system:
 **Goals:** Rebuild the base system, develop primarily in C, and perform lightweight web access from the command line.
 
 ## User
-adds a user `0x00` and sets hostname to antarctica.
+
+- Creates a default user with a randomly generated hexadecimal username (e.g., `0x00`).
+- Sets the hostname to a randomly selected name from a predefined list (e.g., `arctic`, `tundra`, `greenland`, `borealis`, `glacier`, `everest`, `alps`, `denali`, `atlas`, `iceland`, `archipelago`, `boreal`).
+- Places a `run-me.sh` script in the user's home directory. The script documents how to rebuild each installed program from source, including musl libc, LLVM/Clang, the Linux kernel, BusyBox, and other available packages.
 
 ## Packages
 
 - Linux kernel, musl libc, and BusyBox build support
 - Manual pages
 - [Ark](https://github.com/KrzysztofMarciniak/Ark) — source-based package manager
-- [Git](https://git-scm.com/) — version control
-- [curl](https://curl.se/) — network transfers and HTTPS downloads
 - LLVM/Clang — C compiler and selected development tools
 - `pkg-config` — library discovery and build flags
 - GNU Make — build automation
