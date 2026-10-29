@@ -58,11 +58,14 @@ The minimum bootable system:
 
 **Goals:** Rebuild the base system, develop primarily in C, and perform lightweight web access from the command line.
 
+
 ## User
 
 - Creates a default user with a randomly generated hexadecimal username (e.g., `0x00`).
 - Sets the hostname to a randomly selected name from a predefined list (e.g., `arctic`, `tundra`, `greenland`, `borealis`, `glacier`, `everest`, `alps`, `denali`, `atlas`, `iceland`, `archipelago`, `boreal`).
 - Places a `run-me.sh` script in the user's home directory. The script documents how to rebuild each installed program from source, including musl libc, LLVM/Clang, the Linux kernel, BusyBox, and other available packages.
+
+https://github.com/KrzysztofMarciniak/simple-linux-minimal-repo
 
 ## Packages
 

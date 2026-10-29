@@ -11,7 +11,7 @@ $(INITRD): $(STAMP)/rootfs.done $(STAMP)/linux.unpacked
 ifeq ($(PROFILE),minimal)
 	sed -E -i 's@^((dir|file) /home/$(MIN_USER)(/[^ ]*)? .*) 0 0$$@\1 $(MIN_UID) $(MIN_GID)@' $(B)/initramfs.list
 endif
-	cd $(ROOTFS) && $(B)/gen_init_cpio $(B)/initramfs.list | gzip -9 > $@
+	cd $(ROOTFS) && $(B)/gen_init_cpio $(B)/initramfs.list | gzip -1 > $@
 
 # ---- ISO -------------------------------------------------------------------
 iso: $(ISO)

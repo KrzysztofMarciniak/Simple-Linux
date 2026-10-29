@@ -3,6 +3,7 @@ set -eu
 
 if [ "$(id -u)" -ne 0 ]; then
     echo "Run this script as root." >&2
+    echo "run `su root`"
     exit 1
 fi
 

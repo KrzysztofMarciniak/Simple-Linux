@@ -1,15 +1,25 @@
-# ---- rootfs: BusyBox init config -------------------------------------------
+# ---- rootfs ----------------------------------------------------------------
+UHOME        := $(ROOTFS)/home/$(MIN_USER)
+HOME_SCRIPTS := connect-eth0.sh connect-wifi.sh ark-add-test-repo.sh start-ntpd.sh
+
+# Profile-specific parts of /etc/inittab.
+LOGIN_HINT    := root
+HOSTNAME_LINE :=
+ifeq ($(PROFILE),minimal)
+LOGIN_HINT    := root or $(MIN_USER)
+HOSTNAME_LINE := ::sysinit:/bin/hostname -F /etc/hostname
+endif
+
 define INITTAB
+::sysinit:/bin/mkdir -p /proc /sys /dev /tmp
 ::sysinit:/bin/mount -t proc proc /proc
+::sysinit:/bin/mount -t sysfs sysfs /sys
 ::sysinit:/bin/mount -t devtmpfs devtmpfs /dev
 ::sysinit:/bin/mount -t tmpfs tmpfs /tmp
-
-::sysinit:/bin/echo ""
-::sysinit:/bin/echo ""
-::sysinit:/bin/echo "Welcome to SimpleLinux"
-::sysinit:/bin/echo "login as root"
-::sysinit:/bin/echo ""
-::sysinit:/bin/echo ""
+::sysinit:/sbin/mdev -s
+::respawn:/sbin/mdev -df
+::respawn:/usr/sbin/crond -f -c /etc/crontabs
+$(HOSTNAME_LINE)
 
 ::respawn:-/bin/login
 
@@ -22,23 +32,21 @@ endef
 
 export INITTAB
 
-MINIMAL_TOOLS := $(STAMP)/ark.built
 $(STAMP)/rootfs.done: $(STAMP)/busybox.built $(STAMP)/profile \
-                      $(if $(filter minimal,$(PROFILE)),$(CREDS) $(MINIMAL_TOOLS))
+                      $(if $(filter minimal,$(PROFILE)),$(CREDS) $(STAMP)/ark.built)
 	@echo '==> generating rootfs (profile: $(PROFILE))'
 	rm -rf $(ROOTFS)/etc $(ROOTFS)/root $(ROOTFS)/home
-	mkdir -p $(ROOTFS)/proc $(ROOTFS)/dev $(ROOTFS)/tmp $(ROOTFS)/etc $(ROOTFS)/root
+	mkdir -p $(addprefix $(ROOTFS)/,proc dev tmp etc root etc/crontabs)
+	: > $(ROOTFS)/etc/crontabs/root
+	chmod 600 $(ROOTFS)/etc/crontabs/root
 	printf '%s\n' "$$INITTAB" > $(ROOTFS)/etc/inittab
-	echo 'root::0:0:root:/root:/bin/sh' > $(ROOTFS)/etc/passwd
 
 	printf '%s\n' \
 	  'export PATH=/bin:/sbin:/usr/bin:/usr/sbin' \
 	  'export ENV="$$HOME/.ashrc"' \
 	  > $(ROOTFS)/etc/profile
 
-	printf '%s\n' \
-	  'export ENV="$$HOME/.ashrc"' \
-	  > $(ROOTFS)/root/.profile
+	printf '%s\n' 'export ENV="$$HOME/.ashrc"' > $(ROOTFS)/root/.profile
 
 	printf '%s\n' \
 	  '# SimpleLinux ash configuration' \
@@ -50,18 +58,29 @@ $(STAMP)/rootfs.done: $(STAMP)/busybox.built $(STAMP)/profile \
 
 ifeq ($(PROFILE),minimal)
 	@echo '==> minimal: accounts, hostname ($(MIN_HOSTNAME)), user $(MIN_USER)'
-	mkdir -p $(ROOTFS)/home/$(MIN_USER) $(ROOTFS)/usr/bin \
-	    $(ROOTFS)/usr/share/udhcpc
-	cp $(ROOTFS)/root/.profile $(ROOTFS)/root/.ashrc $(ROOTFS)/home/$(MIN_USER)/
+	mkdir -p $(UHOME) $(ROOTFS)/usr/bin $(ROOTFS)/usr/share/udhcpc
+
+	printf '%s\n' '[SUID]' \
+	  'su = ssx root.root' \
+	  'passwd = ssx root.root' > $(ROOTFS)/etc/busybox.conf
+	chmod 600 $(ROOTFS)/etc/busybox.conf
+	chmod 4755 $(ROOTFS)/bin/busybox
+
+	cp $(ROOTFS)/root/.profile $(ROOTFS)/root/.ashrc $(UHOME)/
 	cp $(ARK_BIN) $(ROOTFS)/usr/bin/ark
 	cp $(BUSYBOX_SRC)/examples/udhcp/simple.script \
 	    $(ROOTFS)/usr/share/udhcpc/default.script
 	chmod 755 $(ROOTFS)/usr/share/udhcpc/default.script
-	cp scripts/connect-eth0.sh scripts/connect-wifi.sh \
-	    $(ROOTFS)/home/$(MIN_USER)/
-	chmod 755 $(ROOTFS)/home/$(MIN_USER)/connect-eth0.sh \
-	    $(ROOTFS)/home/$(MIN_USER)/connect-wifi.sh
+	cp $(addprefix scripts/,$(HOME_SCRIPTS)) $(UHOME)/
+	chmod 755 $(addprefix $(UHOME)/,$(HOME_SCRIPTS))
+
+	rm -f $(ROOTFS)/bin/wget $(ROOTFS)/usr/bin/wget
+	cp scripts/wget-wrapper.sh $(ROOTFS)/usr/bin/wget
+	chmod 755 $(ROOTFS)/usr/bin/wget
+
 	: > $(ROOTFS)/etc/resolv.conf
+	echo '$(MIN_HOSTNAME)' > $(ROOTFS)/etc/hostname
+	printf '%s\n' 'export PS1="\u@\h:\w\$$ "' >> $(ROOTFS)/etc/profile
 	{ read -r rh; read -r uh; } < $(CREDS); \
 	days=$$(( $$(date +%s) / 86400 )); \
 	printf '%s\n' \
@@ -72,10 +91,8 @@ ifeq ($(PROFILE),minimal)
 	printf 'root:%s:%s:0:99999:7:::\n%s:%s:%s:0:99999:7:::\n' \
 	  "$$rh" "$$days" '$(MIN_USER)' "$$uh" "$$days" > $(ROOTFS)/etc/shadow; \
 	chmod 600 $(ROOTFS)/etc/shadow
-	echo '$(MIN_HOSTNAME)' > $(ROOTFS)/etc/hostname
-	echo '::sysinit:/bin/hostname -F /etc/hostname' >> $(ROOTFS)/etc/inittab
-	printf '%s\n' 'export PS1="\u@\h:\w\$$ "' >> $(ROOTFS)/etc/profile
-	sed -i 's/^::sysinit:\/bin\/echo "login as root"$$/::sysinit:\/bin\/echo "login as root or $(MIN_USER)"/' $(ROOTFS)/etc/inittab
+else
+	echo 'root::0:0:root:/root:/bin/sh' > $(ROOTFS)/etc/passwd
 endif
 
 	ln -sf bin/busybox $(ROOTFS)/init

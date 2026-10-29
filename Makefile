@@ -1,8 +1,9 @@
+
 # SimpleLinux build orchestrator. Phase rules live in mk/.
 include config.mk
 
 .DEFAULT_GOAL := iso
-.PHONY: iso clean rootfs bare minimal FORCE
+.PHONY: iso clean rootfs bare minimal toolchain FORCE
 
 # bash is needed for `read -s` in the password prompt.
 SHELL := /bin/bash
@@ -36,5 +37,6 @@ include mk/sources.mk
 include mk/profiles.mk
 include mk/kernel.mk
 include mk/userland.mk
+include mk/toolchain.mk
 include mk/rootfs.mk
 include mk/image.mk

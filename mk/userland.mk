@@ -1,7 +1,7 @@
 # ---- musl ------------------------------------------------------------------
 $(STAMP)/musl.built: $(STAMP)/musl.unpacked $(STAMP)/headers.built
 	cd $(MUSL_SRC) && \
-	  CC="$(CLANG) --target=$(TARGET)" ./configure --prefix=/usr --disable-shared && \
+	  CC="$(CLANG) --target=$(TARGET)" ./configure --prefix=/usr && \
 	  $(MAKE) -j$(JOBS) && $(MAKE) DESTDIR=$(SYSROOT) install
 	@touch $@
 
@@ -10,12 +10,16 @@ $(STAMP)/busybox.built: $(STAMP)/busybox.unpacked $(STAMP)/musl.built
 	cd $(BUSYBOX_SRC) && \
 	  $(MAKE) CC="$(CC_SYS)" HOSTCC=cc defconfig && \
 	  sed -i -e 's/^.*CONFIG_STATIC[= ].*$$/CONFIG_STATIC=y/' \
-	         -e 's/^.*CONFIG_TC[= ].*$$/CONFIG_TC=n/' .config && \
+	         -e 's/^.*CONFIG_TC[= ].*$$/CONFIG_TC=n/' \
+	         -e 's/^.*CONFIG_USE_BB_CRYPT[= ].*$$/CONFIG_USE_BB_CRYPT=y/' \
+	         -e 's/^.*CONFIG_USE_BB_CRYPT_SHA[= ].*$$/CONFIG_USE_BB_CRYPT_SHA=y/' \
+	         -e 's/^.*CONFIG_USE_BB_CRYPT_YES[= ].*$$/CONFIG_USE_BB_CRYPT_YES=y/' \
+	         -e 's/^.*CONFIG_CRYPTPW[= ].*$$/CONFIG_CRYPTPW=y/' \
+	         -e 's/^.*CONFIG_MKPASSWD[= ].*$$/CONFIG_MKPASSWD=y/' .config && \
 	  yes "" | $(MAKE) CC="$(CC_SYS)" HOSTCC=cc oldconfig && \
 	  $(MAKE) -j$(JOBS) CC="$(CC_SYS)" HOSTCC=cc && \
 	  $(MAKE) CC="$(CC_SYS)" HOSTCC=cc CONFIG_PREFIX=$(ROOTFS) install
 	@touch $@
-
 # ---- Ark -------------------------------------------------------------------
 ARK_CFLAGS := -static -std=c99 -Wall -Wextra -pedantic
 ARK_BIN := $(B)/ark-musl
