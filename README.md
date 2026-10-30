@@ -158,33 +158,53 @@ No D-Bus, systemd, elogind, polkit or heavyweight service-management framework i
 - [ ] Rebuild at least one base component using Ark.
 - [ ] Verify that the system can be maintained offline.
 
-### 8. Extra 
-- [ ] add support for https://github.com/fwgs/xash3d-fwgs
-- [ ] add support for https://dillo.org/
+### 8. Extra
 
-- [ ] During installation, ask the user whether they want to download a collection of public-domain and openly licensed plain-text resources.
-  - C programming books and tutorials.
-  - C standard library references.
-  - POSIX and Unix programming guides.
-  - Linux system programming resources.
-  - Shell scripting guides.
-  - Networking and TCP/IP basics.
-  - Store everything under `/usr/share/docs/`.
-  - Include license and attribution information for every resource.
-  - Allow installation without an internet connection by skipping this step.
+- [ ] Add Xash3D FWGS support — https://github.com/fwgs/xash3d-fwgs
+- [ ] Add Dillo support — https://dillo.org/
+- [ ] Add Ghidra support — https://github.com/NationalSecurityAgency/ghidra
+- [ ] Add Burp Suite Community support.
+- [ ] Add Valgrind.
+- [ ] Add GDB.
+- [ ] Add WireGuard.
+- [ ] Add ccache.
+- [ ] Add Git.
+- [ ] Add CVS.
+- [ ] Add Nmap.
+- [ ] Add rsync.
+- [ ] Add OpenSSH.
+- [ ] Add MPV.
+- [ ] Add FFmpeg.
+- [ ] Add QEMU.
+- [ ] Add Docker.
 
-- [ ] Write SimpleLinux-specific plain-text guides under `/usr/share/docs/simplelinux/`.
-  - [ ] **Lilith guide** — adding, removing, starting, stopping, and listing services.
-  - [ ] **Ash shell guide** — shell basics, commands, scripting, and configuration.
-  - [ ] **System rebuilding guide** — recompiling the kernel, musl, BusyBox, and LLVM.
-  - [ ] **Ark guide** — installing packages, building from source, and managing packages.
-  - [ ] **System installation guide** — installation, disk encryption, booting, and recovery.
-  - [ ] **Filesystem guide** — root filesystem layout and important directories.
-  - [ ] **Networking guide** — configuring Ethernet, Wi-Fi, DHCP, and SSH.
-  - [ ] **Troubleshooting guide** — common problems and recovery procedures.
+**Documentation resources**
 
-- [ ] Keep documentation in plain `.txt` format.
-- [ ] Make documentation readable with standard tools such as `less`, `more`, and `cat`.
+- [ ] Add an optional documentation download step to the installer.
+- [ ] Include C programming books and tutorials.
+- [ ] Include C standard library references.
+- [ ] Include POSIX and Unix programming guides.
+- [ ] Include Linux system programming resources.
+- [ ] Include shell scripting guides.
+- [ ] Include networking and TCP/IP guides.
+- [ ] Store downloaded resources under `/usr/share/docs/`.
+- [ ] Include license and attribution information for every resource.
+- [ ] Allow users to skip downloads during offline installation.
+
+**SimpleLinux documentation**
+
+- [ ] Create `/usr/share/docs/simplelinux/`.
+- [ ] Write `lilith.txt` — service management.
+- [ ] Write `ash.txt` — shell usage, commands and scripting.
+- [ ] Write `ark.txt` — package management and building.
+- [ ] Write `rebuilding.txt` — rebuilding the kernel, musl, BusyBox and LLVM.
+- [ ] Write `installation.txt` — installation, disk encryption, booting and recovery.
+- [ ] Write `filesystem.txt` — filesystem layout and directories.
+- [ ] Write `networking.txt` — Ethernet, Wi-Fi, DHCP and SSH.
+- [ ] Write `diagnostics.txt` — system diagnostics, logs, hardware, processes and failed services.
+- [ ] Write `troubleshooting.txt` — common problems and recovery procedures.
+- [ ] Keep all documentation in plain `.txt` format.
+- [ ] Ensure documentation is readable with `cat`, `less` and `more`.
 
 **Completion goal:** A working, encrypted, bootable and self-hosting SimpleLinux installation with a musl-only runtime, LLVM/Clang toolchain, BusyBox userland and Ark package management.
 
