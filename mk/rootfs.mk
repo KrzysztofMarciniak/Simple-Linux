@@ -33,7 +33,7 @@ $(HOSTNAME_LINE)
 #lilith:mdev
 ::respawn:/sbin/mdev -df
 #lilith:crond
-::respawn:/usr/sbin/crond -f -c /etc/crontabs
+#::respawn:/usr/sbin/crond -f -c /etc/crontabs
 $(EXTRA_SERVICES)
 #lilith-end
 
@@ -69,6 +69,7 @@ $(STAMP)/rootfs.done: $(STAMP)/busybox.built $(STAMP)/profile \
 	  ' / / /__\_\ \' \
 	  '/ / /________\' \
 	  '\/___________/' \
+      'Simple Linux' \
 	  > $(ROOTFS)/etc/issue
 
 	printf '%s\n' \
