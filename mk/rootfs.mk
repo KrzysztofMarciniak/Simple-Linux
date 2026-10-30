@@ -73,7 +73,7 @@ $(STAMP)/rootfs.done: $(STAMP)/busybox.built $(STAMP)/profile \
 	  > $(ROOTFS)/etc/issue
 
 	printf '%s\n' \
-	  'export PATH=/bin:/sbin:/usr/bin:/usr/sbin:$$HOME/.ark/bin' \
+	  'export PATH=$$HOME/.local/bin:$$HOME/.ark/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin' \
 	  'export ENV="$$HOME/.ashrc"' \
 	  > $(ROOTFS)/etc/profile
 
@@ -81,6 +81,7 @@ $(STAMP)/rootfs.done: $(STAMP)/busybox.built $(STAMP)/profile \
 
 	printf '%s\n' \
 	  '# SimpleLinux ash configuration' \
+	  "PS1='\\[\\e[31m\\]\\$$ \\[\\e[0m\\]'" \
 	  "alias l='ls -lah'" \
 	  "alias c='clear'" \
 	  'export EDITOR=vi' \
