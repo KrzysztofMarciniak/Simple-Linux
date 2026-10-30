@@ -78,14 +78,53 @@ $(STAMP)/rootfs.done: $(STAMP)/busybox.built $(STAMP)/profile \
 	  > $(ROOTFS)/etc/profile
 
 	printf '%s\n' 'export ENV="$$HOME/.ashrc"' > $(ROOTFS)/root/.profile
-
 	printf '%s\n' \
 	  '# SimpleLinux ash configuration' \
 	  "PS1='\\[\\e[31m\\]\\$$ \\[\\e[0m\\]'" \
-	  "alias l='ls -lah'" \
+	  "alias l='ls -lahpF --full-time --color=always'" \
 	  "alias c='clear'" \
 	  'export EDITOR=vi' \
+	  'alias ..="cd .."' \
+	  'alias ...="cd ../.."' \
+	  'alias cp="cp -i"' \
+	  'alias mv="mv -i"' \
+	  'rm() {' \
+	  '    force=0' \
+	  '    recursive=0' \
+	  '    for arg do' \
+	  '        case "$$arg" in' \
+	  '            --) break ;;' \
+	  '            -*)' \
+	  '                case "$$arg" in' \
+	  '                    *f*) force=1 ;;' \
+	  '                esac' \
+	  '                case "$$arg" in' \
+	  '                    *r*|*R*) recursive=1 ;;' \
+	  '                esac ;;' \
+	  '        esac' \
+	  '    done' \
+	  '    for path do' \
+	  '        case "$$path" in -*) continue ;; esac' \
+	  '        if [ -L "$$path" ]; then' \
+	  '            command rm -f -- "$$path" || return 1' \
+	  '        elif [ -d "$$path" ]; then' \
+	  '            [ "$$recursive" -eq 1 ] || {' \
+	  '                echo "rm: directory requires -r: $$path" >&2' \
+	  '                return 1' \
+	  '            }' \
+	  '            find "$$path" -depth -type f -exec shred -f -n 3 -z -u {} \; || return 1' \
+	  '            command rm -rf -- "$$path" || return 1' \
+	  '        elif [ -f "$$path" ]; then' \
+	  '            shred -f -n 3 -z -u "$$path" || return 1' \
+	  '        elif [ "$$force" -eq 0 ]; then' \
+	  '            echo "rm: cannot remove: $$path" >&2' \
+	  '            return 1' \
+	  '        fi' \
+	  '    done' \
+	  '}' \
 	  > $(ROOTFS)/root/.ashrc
+
+
 
 ifeq ($(PROFILE),minimal)
 	@echo '==> minimal: accounts, hostname ($(MIN_HOSTNAME)), user $(MIN_USER)'
