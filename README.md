@@ -23,6 +23,8 @@ SimpleLinux has three planned profiles:
 The project is under active development. Profiles and package availability may change as components are ported, built, and tested. The package lists below describe intended contents, not necessarily the current state of every build.
 
 ![screenshot](simple.png)
+
+![boot](boot.png)
 ## Building
 
 Build the ISO and its required components:
