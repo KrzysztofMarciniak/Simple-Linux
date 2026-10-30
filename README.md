@@ -6,7 +6,7 @@
 
 **SimpleLinux (SL)** is a minimal, developer-first Linux distribution built from source, using the **Linux kernel, musl libc, LLVM/Clang, and dynamically linked BusyBox**.
 
-Its goal is to provide a complete development environment with everything needed to build, maintain, and rebuild the system itself, even without an internet connection.
+Its goal is to provide a complete development environment with everything needed to build, maintain, and rebuild the system itself, even without an internet connection, while remaining practical and user-friendly. It aims to provide useful quality-of-life features without compromising the KISS philosophy. A good example is using `su` instead of `sudo` or `doas`, while retaining their familiar interfaces through a simple wrapper.
 
 Packages are managed by [Ark](https://github.com/KrzysztofMarciniak/Ark). The init system is BusyBox init, configured through `/etc/inittab`, with services managed by Lilith. No D-Bus, no polkit, no unnecessary complexity.
 
