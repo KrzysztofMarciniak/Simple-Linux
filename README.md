@@ -156,7 +156,9 @@ No D-Bus, systemd, elogind, polkit or heavyweight service-management framework i
 - [ ] Rebuild at least one base component using Ark.
 - [ ] Verify that the system can be maintained offline.
 
-### 8. Extra — Documentation
+### 8. Extra 
+- [ ] add support for https://github.com/fwgs/xash3d-fwgs
+- [ ] add support for https://dillo.org/
 
 - [ ] During installation, ask the user whether they want to download a collection of public-domain and openly licensed plain-text resources.
   - C programming books and tutorials.
