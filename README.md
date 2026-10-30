@@ -182,6 +182,8 @@ No D-Bus, systemd, elogind, polkit or heavyweight service-management framework i
 
 ## Service Manager
 
+![lilith usage](lilith.png)
+
 SimpleLinux uses BusyBox `init` as PID 1. **Lilith** is a small service manager on top of it, written in POSIX `sh` and using only BusyBox applets. It has no extra dependencies and no daemon of its own. Services are ordinary `respawn` entries in `/etc/inittab`, which `init` already supervises.
 
 Lilith is installed in the **Minimal** profile.
