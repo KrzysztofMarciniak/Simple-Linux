@@ -18,3 +18,5 @@ BUSYBOX_URL = https://busybox.net/downloads/busybox-$(BUSYBOX_VERSION).tar.bz2
 ARK_URL     = https://github.com/KrzysztofMarciniak/Ark/archive/refs/tags/$(ARK_VERSION).tar.gz
 LLVM_VERSION := 21.1.8
 LLVM_URL = https://github.com/llvm/llvm-project/releases/download/llvmorg-$(LLVM_VERSION)/llvm-project-$(LLVM_VERSION).src.tar.xz
+MAKE_VERSION := 4.4.1
+MAKE_URL     = https://ftp.gnu.org/gnu/make/make-$(MAKE_VERSION).tar.gz
