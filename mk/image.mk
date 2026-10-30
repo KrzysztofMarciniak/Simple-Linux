@@ -21,7 +21,7 @@ $(ISO): $(STAMP)/kernel.built $(INITRD)
 	mkdir -p $(B)/iso/boot/grub
 	cp $(KOUT)/arch/$(KARCH)/boot/bzImage $(B)/iso/boot/vmlinuz
 	cp $(INITRD) $(B)/iso/boot/initramfs.gz
-	printf 'set timeout=0\nmenuentry "%s" {\n  linux /boot/vmlinuz console=tty0 console=ttyS0\n  initrd /boot/initramfs.gz\n}\n' \
+	printf 'set timeout=5\nset debug=linux\nmenuentry "%s" {\n  linux /boot/vmlinuz rdinit=/init ignore_loglevel loglevel=8 earlyprintk=vga,keep earlyprintk=efi,keep earlyprintk=ttyS0,115200 console=ttyS0,115200 console=tty0\n  initrd /boot/initramfs.gz\n}\n' \
 	    "$(NAME)" > $(B)/iso/boot/grub/grub.cfg
 	grub-mkrescue -o $@ $(B)/iso
 

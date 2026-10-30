@@ -105,10 +105,6 @@ ifeq ($(PROFILE),minimal)
 	cp $(addprefix scripts/,$(HOME_SCRIPTS)) $(UHOME)/
 	chmod 755 $(addprefix $(UHOME)/,$(HOME_SCRIPTS))
 
-	rm -f $(ROOTFS)/bin/wget $(ROOTFS)/usr/bin/wget
-	cp scripts/wget-wrapper.sh $(ROOTFS)/usr/bin/wget
-	chmod 755 $(ROOTFS)/usr/bin/wget
-
 	rm -f $(ROOTFS)/bin/sudo $(ROOTFS)/bin/doas \
 	      $(ROOTFS)/usr/bin/sudo $(ROOTFS)/usr/bin/doas
 	cp scripts/sudo-wrapper.sh $(ROOTFS)/usr/bin/sudo
