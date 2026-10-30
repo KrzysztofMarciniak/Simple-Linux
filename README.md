@@ -70,7 +70,7 @@ The minimum bootable system:
 **Goal:** A bootable, installable, musl-based Linux system with LLVM/Clang, BusyBox, Ark, and the tools required to rebuild the entire system from source.
 
 ### 1. Toolchain and base system
-- [ ] Add make
+- [x] Add make
 - [ ] Finalize the LLVM build (Clang + LLD + compiler-rt).
 - [ ] Install the LLVM toolchain into the build environment outside the root filesystem.
 - [ ] Include the required LLVM toolchain binaries and libraries in the Minimal ISO.
