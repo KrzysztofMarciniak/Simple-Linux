@@ -1,28 +1,48 @@
 # ---- LLVM seed toolchain (clang + lld) -------------------------------------
-# Built with the host compiler and installed normally into the rootfs (/usr).
+# Built with the host musl toolchain and installed into the rootfs (/usr).
+include mk/llvm-runtime.mk
+
 LLVM_BUILD := $(B)/llvm-build
 LLVM_INST  := $(B)/llvm-install
+LLVM_RUNTIME_LINK_FLAGS := -resource-dir=$(LLVM_RUNTIME_RESOURCE_DIR) -L$(LLVM_RUNTIME_LIBDIR) -Wl,-rpath-link,$(LLVM_RUNTIME_LIBDIR) -rtlib=compiler-rt -unwindlib=libunwind
+LLVM_RUNTIME_LD_LIBRARY_PATH := $(LLVM_RUNTIME_LIBDIR)$(if $(strip $(LD_LIBRARY_PATH)),:$(LD_LIBRARY_PATH))
+LLVM_BUILD_ENV := env -u CC -u CXX -u CFLAGS -u CXXFLAGS -u CPPFLAGS -u LDFLAGS \
+                  -u CMAKE_PREFIX_PATH -u CMAKE_GENERATOR
 
 .PHONY: toolchain
 toolchain: $(STAMP)/llvm.built $(STAMP)/llvm.rootfs
 
-$(STAMP)/llvm.built: $(STAMP)/llvm.unpacked
+$(STAMP)/llvm.config: FORCE
+	@mkdir -p $(STAMP)
+	@printf '%s\n' '$(LLVM_CCACHE_BUILD)' | cmp -s - $@ || printf '%s\n' '$(LLVM_CCACHE_BUILD)' > $@
+
+# Keep libc++ headers/linking explicit; LLVM_ENABLE_LIBCXX injects -stdlib into
+# compile flags, making this Clang's compile-only -fPIC check fail under -Werror.
+$(STAMP)/llvm.built: $(STAMP)/llvm.unpacked $(STAMP)/llvm.runtime $(STAMP)/llvm.config $(CURDIR)/mk/toolchain.mk $(CURDIR)/config.mk
 	rm -rf $(LLVM_BUILD) $(LLVM_INST)
-	env -u LDFLAGS -u CFLAGS -u CXXFLAGS -u CPPFLAGS \
+	mkdir -p $(LLVM_INST)/usr
+	cp -a $(LLVM_RUNTIME_INST)/usr/. $(LLVM_INST)/usr/
+	$(LLVM_BUILD_ENV) \
 	  cmake -S $(LLVM_SRC)/llvm -B $(LLVM_BUILD) \
 	    -DCMAKE_BUILD_TYPE=Release \
 	    -DCMAKE_INSTALL_PREFIX=/usr \
-	    -DCMAKE_C_COMPILER=cc \
-	    -DCMAKE_CXX_COMPILER=c++ \
+	    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+	    -DCMAKE_C_COMPILER=clang \
+	    -DCMAKE_CXX_COMPILER=clang++ \
+	    -DCMAKE_CXX_FLAGS='-nostdinc++ -isystem $(abspath $(LLVM_RUNTIME_INST))/usr/include/c++/v1' \
+	    -DCMAKE_CXX_STANDARD_LIBRARIES='-stdlib=libc++' \
+	    -DCMAKE_EXE_LINKER_FLAGS='$(LLVM_RUNTIME_LINK_FLAGS)' \
+	    -DCMAKE_SHARED_LINKER_FLAGS='$(LLVM_RUNTIME_LINK_FLAGS)' \
+	    -DCMAKE_MODULE_LINKER_FLAGS='$(LLVM_RUNTIME_LINK_FLAGS)' \
+	    -DLLVM_ENABLE_ASSERTIONS=OFF \
+	    -DLLVM_CCACHE_BUILD=$(LLVM_CCACHE_BUILD) \
 	    -DLLVM_ENABLE_PROJECTS='clang;lld' \
 	    -DLLVM_ENABLE_RUNTIMES=compiler-rt \
+	    -DLLVM_ENABLE_LIBCXX=OFF \
 	    -DCLANG_DEFAULT_RTLIB=compiler-rt \
 	    -DCOMPILER_RT_BUILD_BUILTINS=ON \
 	    -DCOMPILER_RT_BUILD_CRT=ON \
 	    -DCOMPILER_RT_BUILD_SANITIZERS=OFF \
-	    -DCMAKE_EXE_LINKER_FLAGS= \
-	    -DCMAKE_SHARED_LINKER_FLAGS= \
-	    -DCMAKE_MODULE_LINKER_FLAGS= \
 	    -DLLVM_BUILD_STATIC=OFF \
 	    -DLIBCLANG_BUILD_STATIC=OFF \
 	    -DLLVM_STATIC_LINK_CXX_STDLIB=OFF \
@@ -53,9 +73,9 @@ $(STAMP)/llvm.built: $(STAMP)/llvm.unpacked
 	    -DCOMPILER_RT_INCLUDE_TESTS=OFF \
 	    -DLLVM_ENABLE_TERMINFO=OFF
 
-	env -u LDFLAGS cmake --build $(LLVM_BUILD) --target LLVM -j$(JOBS)
-	env -u LDFLAGS cmake --build $(LLVM_BUILD) -j$(JOBS)
-	DESTDIR=$(LLVM_INST) cmake --install $(LLVM_BUILD) --strip
+	$(LLVM_BUILD_ENV) env LD_LIBRARY_PATH='$(LLVM_RUNTIME_LD_LIBRARY_PATH)' \
+	  cmake --build $(LLVM_BUILD) --parallel $(JOBS)
+	$(LLVM_BUILD_ENV) DESTDIR=$(LLVM_INST) cmake --install $(LLVM_BUILD) --strip
 
 	mkdir -p $(LLVM_INST)/usr/bin
 	ln -sf clang $(LLVM_INST)/usr/bin/cc
@@ -93,41 +113,3 @@ $(STAMP)/llvm.rootfs: $(STAMP)/llvm.built $(STAMP)/musl.built $(STAMP)/rootfs.do
 
 # The initramfs must be built after the install.
 $(INITRD): $(STAMP)/llvm.rootfs
-
-# ---- GNU make (dynamic, musl) ----------------------------------------------
-MAKE_SRC   := $(B)/make-$(MAKE_VERSION)
-MAKE_BUILD := $(B)/make-build
-MAKE_INST  := $(B)/make-install
-
-.PHONY: gmake
-gmake: $(STAMP)/make.rootfs
-
-$(STAMP)/make.unpacked:
-	mkdir -p $(B) $(STAMP)
-	curl -L -o $(B)/make-$(MAKE_VERSION).tar.gz $(MAKE_URL)
-	tar -xf $(B)/make-$(MAKE_VERSION).tar.gz -C $(B)
-	@touch $@
-
-$(STAMP)/make.built: $(STAMP)/make.unpacked $(STAMP)/musl.built $(STAMP)/llvm.built $(CC_WRAP)
-	rm -rf $(MAKE_BUILD) $(MAKE_INST)
-	mkdir -p $(MAKE_BUILD)
-	cd $(MAKE_BUILD) && env -u LDFLAGS -u CFLAGS -u CPPFLAGS \
-	  CC="$(CC_SYS)" \
-	  LDFLAGS="-fuse-ld=lld -B$(abspath $(LLVM_INST))/usr/bin -no-pie -rtlib=compiler-rt -unwindlib=none" \
-	  $(MAKE_SRC)/configure \
-	    --host=$(TARGET) \
-	    --prefix=/usr \
-	    --disable-nls \
-	    --disable-load \
-	    --without-guile
-	$(MAKE) -C $(MAKE_BUILD) -j$(JOBS)
-	$(MAKE) -C $(MAKE_BUILD) DESTDIR=$(abspath $(MAKE_INST)) install-strip
-	@touch $@
-
-$(STAMP)/make.rootfs: $(STAMP)/make.built $(STAMP)/rootfs.done
-	mkdir -p $(ROOTFS)/usr/bin
-	rm -f $(ROOTFS)/bin/make $(ROOTFS)/usr/bin/make
-	cp -a $(MAKE_INST)/usr/bin/make $(ROOTFS)/usr/bin/make
-	@touch $@
-
-$(INITRD): $(STAMP)/make.rootfs

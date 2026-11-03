@@ -21,6 +21,36 @@ EOF
 reload() { kill -HUP 1; }
 has()    { grep -Fxq "#lilith:$1" "$TAB"; }
 
+service_command() {
+    awk -v n="$1" '
+        $0 == "#lilith:" n && getline {
+            sub(/^#/, "")
+            sub(/^::respawn:/, "")
+            print
+            exit
+        }' "$TAB"
+}
+
+stop_process() {
+    executable=$(printf '%s\n' "$1" | awk 'NF { print $1; exit }')
+    executable=${executable##*/}
+    [ -n "$executable" ] || return 0
+    command -v pidof >/dev/null 2>&1 || die "pidof not found"
+
+    pids=$(pidof -o "$$" "$executable")
+    status=$?
+    case $status in
+        0) ;;
+        1) return 0 ;;
+        *) die "could not find process '$executable'" ;;
+    esac
+
+    for pid in $pids; do
+        [ "$pid" = "$$" ] && continue
+        kill -TERM "$pid" || die "could not stop process $pid ($executable)"
+    done
+}
+
 quote() { printf "'%s'" "$(printf %s "$1" | sed "s/'/'\\\\''/g")"; }
 
 elevate() {
@@ -83,7 +113,9 @@ case $1 in
     remove|stop|start)
             [ -n "$2" ] || usage
             has "$2" || die "no such service: $2"
+            [ "$1" = start ] || command=$(service_command "$2")
             edit "$1" "$2"
+            [ "$1" = start ] || stop_process "$command"
             echo "lilith: $1 $2" ;;
     *)      usage ;;
 esac

@@ -34,12 +34,19 @@ LLVM_INST := $(B)/llvm-install
 
 # Userland compiler: clang targeting musl, dynamic, using our sysroot.
 CC_SYS = $(abspath $(LLVM_INST))/usr/bin/clang --target=x86_64-linux-musl --sysroot=$(abspath $(SYSROOT)) -rtlib=compiler-rt -unwindlib=none
+CC_SYS_CACHED = $(strip $(if $(filter ON,$(TARGET_CCACHE)),$(CCACHE)) $(CC_SYS))
 MUSL_LD := /lib/ld-musl-x86_64.so.1
+
+$(STAMP)/target.ccache: FORCE
+	@mkdir -p $(STAMP)
+	@printf '%s\n' '$(TARGET_CCACHE)' '$(CCACHE)' | cmp -s - $@ || printf '%s\n' '$(TARGET_CCACHE)' '$(CCACHE)' > $@
 
 include mk/sources.mk
 include mk/profiles.mk
 include mk/kernel.mk
 include mk/userland.mk
+include mk/busybox.mk
 include mk/toolchain.mk
+include mk/gmake.mk
 include mk/rootfs.mk
 include mk/image.mk

@@ -33,17 +33,47 @@ Build the ISO and its required components:
 make
 ```
 
-Rebuild the root filesystem and regenerate the initramfs and ISO after changing the root filesystem configuration, `inittab`, or related Makefile rules:
+On a clean build this selects the Bare profile; otherwise it reuses the most
+recently built profile. Select a profile explicitly with `make bare` or
+`make minimal`. Parallel builds use the available CPU count by default; limit
+resource use with, for example, `make JOBS=2`. Tune kernel parallelism
+separately with `make KERNEL_JOBS=2`; it defaults to `JOBS`.
+
+Force regeneration of the root filesystem, initramfs, and ISO:
 
 ```sh
 make rootfs
 ```
+
+BusyBox applets are selected in `busybox.config`. It keeps the applets needed
+for boot, shipped scripts, optional base services, and the interactive base
+system, rather than inheriting BusyBox's much larger upstream `defconfig`.
+Changes to the BusyBox config, rootfs scripts, and phase-specific Make rules
+are tracked by Make and trigger the corresponding rebuilds.
 
 Remove build output and generated ISO files while preserving downloaded source archives:
 
 ```sh
 make clean
 ```
+
+The LLVM build uses the host's `cc` and `c++`, CMake, and GNU Make. Host-provided
+compiler flags and CMake generator/prefix settings are cleared for the LLVM
+configure, build, and install steps so they do not silently change the toolchain
+configuration. If `ccache` is installed, it is used automatically for LLVM,
+the kernel, musl, BusyBox, Ark, and GNU Make; otherwise caching stays off.
+Override target-side caching with `TARGET_CCACHE=ON/OFF`, or control LLVM and
+BusyBox independently with `LLVM_CCACHE_BUILD=ON/OFF` and
+`BUSYBOX_CCACHE=ON/OFF`. Inspect cache usage with `ccache -s`. The cache lives
+outside `build/` by default, so `make clean` does not remove it.
+
+The build keeps each component's upstream optimization defaults rather than
+forcing `-O3` or `-march=native`: these can increase compile time and reduce
+binary portability without reliably improving the build. The kernel build also
+uses an empty `KBUILD_BUILD_TIMESTAMP` so timestamp changes do not prevent
+ccache hits between builds. The kernel config already disables debug info and
+LTO while retaining performance optimization; Kbuild uses `pigz` for image
+compression automatically when it is installed.
 
 Boot the ISO using QEMU:
 
@@ -108,6 +138,9 @@ The minimum bootable system:
 
 ### 4. Self-hosting and offline development
 
+See [Minimal rebuild dependencies](REBUILD_DEPENDENCIES.md) for the current
+kernel, musl, and LLVM/Clang prerequisites and offline source-archive checklist.
+
 - [ ] Ensure the installed system can rebuild its own base components using Ark.
 - [ ] Verify that Ark can rebuild and reinstall musl, LLVM/Clang, BusyBox and the kernel.
 - [ ] Ensure source archives and required build dependencies can be retained locally.
@@ -164,6 +197,7 @@ No D-Bus, systemd, elogind, polkit or heavyweight service-management framework i
 - [ ] Add Dillo support — https://dillo.org/
 - [ ] Add Ghidra support — https://github.com/NationalSecurityAgency/ghidra
 - [ ] Add Burp Suite Community support.
+- [ ] Add abduco + dvtm.
 - [ ] Add Valgrind.
 - [ ] Add GDB.
 - [ ] Add WireGuard.
@@ -249,7 +283,7 @@ Each managed service is a marker line followed by its entry:
 ::respawn:/usr/sbin/ntpd -n -p pool.ntp.org
 ```
 
-- **`start`** uncomments the entry, **`stop`** comments it out, and **`remove`** deletes both lines.
+- **`start`** uncomments the entry, **`stop`** comments it out, and **`remove`** deletes both lines. `stop` and `remove` also send `SIGTERM` to processes whose executable name matches the configured command.
 - **`add`** inserts new services above the `#lilith-end` line.
 - After every change, Lilith sends `SIGHUP` to `init` so it re-reads `/etc/inittab`.
 

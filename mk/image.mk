@@ -1,5 +1,5 @@
 # ---- initramfs (gen_init_cpio creates /dev nodes without root) -------------
-$(INITRD): $(STAMP)/rootfs.done $(STAMP)/linux.unpacked
+$(INITRD): $(STAMP)/rootfs.done $(STAMP)/linux.unpacked $(CURDIR)/mk/image.mk
 	cc -o $(B)/gen_init_cpio $(LINUX_SRC)/usr/gen_init_cpio.c
 	cd $(ROOTFS) && { \
 	  find . -mindepth 1 -type d -printf 'dir /%P %m 0 0\n'; \
@@ -16,7 +16,7 @@ endif
 # ---- ISO -------------------------------------------------------------------
 iso: $(ISO)
 
-$(ISO): $(STAMP)/kernel.built $(INITRD)
+$(ISO): $(STAMP)/kernel.built $(INITRD) $(CURDIR)/mk/image.mk $(CURDIR)/config.mk
 	rm -rf $(B)/iso
 	mkdir -p $(B)/iso/boot/grub
 	cp $(KOUT)/arch/$(KARCH)/boot/bzImage $(B)/iso/boot/vmlinuz

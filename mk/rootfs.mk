@@ -48,8 +48,8 @@ endef
 
 export INITTAB
 
-$(STAMP)/rootfs.done: $(STAMP)/busybox.built $(STAMP)/profile \
-                      $(if $(filter minimal,$(PROFILE)),$(STAMP)/ark.built scripts/lilith.sh scripts/sudo-wrapper.sh)
+$(STAMP)/rootfs.done: $(STAMP)/busybox.built $(STAMP)/profile $(CURDIR)/mk/rootfs.mk $(CURDIR)/config.mk \
+                      $(if $(filter minimal,$(PROFILE)),$(STAMP)/ark.built scripts/lilith.sh scripts/sudo-wrapper.sh $(addprefix scripts/,$(HOME_SCRIPTS)))
 	@echo '==> generating rootfs (profile: $(PROFILE))'
 	rm -rf $(ROOTFS)/etc $(ROOTFS)/root $(ROOTFS)/home
 	mkdir -p $(addprefix $(ROOTFS)/,proc dev tmp etc root etc/crontabs)
@@ -81,13 +81,96 @@ $(STAMP)/rootfs.done: $(STAMP)/busybox.built $(STAMP)/profile \
 	printf '%s\n' \
 	  '# SimpleLinux ash configuration' \
 	  "PS1='\\[\\e[31m\\]\\$$ \\[\\e[0m\\]'" \
+	  'export HISTFILE="$$HOME/.ash_history"' \
+	  'export HISTSIZE=200' \
+	  'export HISTFILESIZE=200' \
 	  "alias l='ls -lahpF --full-time --color=always'" \
 	  "alias c='clear'" \
+	  "alias dhcp='udhcpc'" \
+	  "alias dhcpcd='udhcpc'" \
 	  'export EDITOR=vi' \
 	  'alias ..="cd .."' \
 	  'alias ...="cd ../.."' \
 	  'alias cp="cp -i"' \
 	  'alias mv="mv -i"' \
+	  'alias hex="xxd"' \
+	  'alias hexx="hexdump"' \
+	  '# Limited ifconfig-backed ip compatibility; routes and address deletion are unsupported.' \
+	  'ip_ipv4_mask() {' \
+	  '    prefix=$$1' \
+	  '    while [ "$$prefix" != 0 ] && [ "$${prefix#0}" != "$$prefix" ]; do prefix=$${prefix#0}; done' \
+	  '    case "$$prefix" in ""|*[!0-9]*|???*) return 2 ;; esac' \
+	  '    [ "$$prefix" -le 32 ] 2>/dev/null || return 2' \
+	  '    mask=' \
+	  '    part=0' \
+	  '    while [ "$$part" -lt 4 ]; do' \
+	  '        bits=$$((prefix - part * 8))' \
+	  '        if [ "$$bits" -ge 8 ]; then octet=255; elif [ "$$bits" -le 0 ]; then octet=0; else octet=$$((256 - (1 << (8 - bits)))); fi' \
+	  '        [ "$$part" -eq 0 ] || mask="$$mask."' \
+	  '        mask="$$mask$$octet"' \
+	  '        part=$$((part + 1))' \
+	  '    done' \
+	  '    printf "%s\n" "$$mask"' \
+	  '}' \
+	  'ip() {' \
+	  '    [ "$$#" -gt 0 ] || { echo "Usage: ip {addr|address|link} ..." >&2; return 2; }' \
+	  '    case "$$1" in' \
+	  '        addr|address)' \
+	  '            shift' \
+	  '            case "$$1" in' \
+	  '                ""|show|list)' \
+	  '                    [ "$$1" ] && shift' \
+	  '                    if [ "$$1" = dev ] && [ -n "$$2" ] && [ "$$#" -eq 2 ]; then' \
+	  '                        command ifconfig "$$2"' \
+	  '                    elif [ -z "$$1" ]; then' \
+	  '                        command ifconfig -a' \
+	  '                    else' \
+	  '                        echo "ip addr: supported form is show [dev IFACE]" >&2; return 2' \
+	  '                    fi ;;' \
+	  '                add)' \
+	  '                    shift' \
+	  '                    cidr=$$1' \
+	  '                    case "$$cidr" in */*) ;; *) echo "ip addr add requires IPv4 CIDR (for example 192.0.2.10/24)" >&2; return 2 ;; esac' \
+	  '                    address=$${cidr%/*}' \
+	  '                    prefix=$${cidr##*/}' \
+	  '                    case "$$address" in ""|*[!0-9.]*) echo "ip addr add: expected an IPv4 address" >&2; return 2 ;; esac' \
+	  '                    mask=$$(ip_ipv4_mask "$$prefix") || { echo "ip addr add: invalid IPv4 prefix: $$prefix" >&2; return 2; }' \
+	  '                    shift' \
+	  '                    [ "$$1" = dev ] && [ -n "$$2" ] || { echo "ip addr add: expected dev IFACE" >&2; return 2; }' \
+	  '                    shift' \
+	  '                    iface=$$1' \
+	  '                    shift' \
+	  '                    [ "$$#" -eq 0 ] || { echo "ip addr add: extra arguments are unsupported" >&2; return 2; }' \
+	  '                    command ifconfig "$$iface" "$$address" netmask "$$mask" up ;;' \
+	  '                *) echo "ip addr: supported forms are show [dev IFACE] and add IPv4/PREFIX dev IFACE" >&2; return 2 ;;' \
+	  '            esac ;;' \
+	  '        link)' \
+	  '            shift' \
+	  '            case "$$1" in' \
+	  '                ""|show|list)' \
+	  '                    [ "$$1" ] && shift' \
+	  '                    if [ "$$1" = dev ] && [ -n "$$2" ] && [ "$$#" -eq 2 ]; then' \
+	  '                        command ifconfig "$$2"' \
+	  '                    elif [ -z "$$1" ]; then' \
+	  '                        command ifconfig -a' \
+	  '                    else' \
+	  '                        echo "ip link: supported form is show [dev IFACE]" >&2; return 2' \
+	  '                    fi ;;' \
+	  '                set)' \
+	  '                    shift' \
+	  '                    [ "$$1" = dev ] && shift' \
+	  '                    iface=$$1' \
+	  '                    action=$$2' \
+	  '                    case "$$action" in up|down) ;; *) echo "ip link set: supported actions are up and down" >&2; return 2 ;; esac' \
+	  '                    [ -n "$$iface" ] && [ "$$#" -eq 2 ] || { echo "ip link set: expected [dev] IFACE up|down" >&2; return 2; }' \
+	  '                    command ifconfig "$$iface" "$$action" ;;' \
+	  '                *) echo "ip link: supported forms are show [dev IFACE] and set [dev] IFACE up|down" >&2; return 2 ;;' \
+	  '            esac ;;' \
+	  '        route|neigh|neighbor|rule)' \
+	  '            echo "ip: $$1 cannot be emulated by ifconfig" >&2; return 2 ;;' \
+	  '        *) echo "ip: supported groups are addr, address, and link (ifconfig-backed)" >&2; return 2 ;;' \
+	  '    esac' \
+	  '}' \
 	  'rm() {' \
 	  '    force=0' \
 	  '    recursive=0' \
@@ -124,6 +207,14 @@ $(STAMP)/rootfs.done: $(STAMP)/busybox.built $(STAMP)/profile \
 	  '}' \
 	  > $(ROOTFS)/root/.ashrc
 
+	printf '%s\n' \
+	  ':set ts=8' \
+	  ':set expandtab' \
+	  ':set autoindent' \
+	  ':set ignorecase' \
+	  > $(ROOTFS)/root/.exrc
+	chmod 600 $(ROOTFS)/root/.exrc
+
 
 
 ifeq ($(PROFILE),minimal)
@@ -136,7 +227,8 @@ ifeq ($(PROFILE),minimal)
 	chmod 600 $(ROOTFS)/etc/busybox.conf
 	chmod 4755 $(ROOTFS)/bin/busybox
 
-	cp $(ROOTFS)/root/.profile $(ROOTFS)/root/.ashrc $(UHOME)/
+	cp $(ROOTFS)/root/.profile $(ROOTFS)/root/.ashrc $(ROOTFS)/root/.exrc $(UHOME)/
+	chmod 600 $(UHOME)/.exrc
 	cp $(ARK_BIN) $(ROOTFS)/usr/bin/ark
 	cp $(BUSYBOX_SRC)/examples/udhcp/simple.script \
 	    $(ROOTFS)/usr/share/udhcpc/default.script

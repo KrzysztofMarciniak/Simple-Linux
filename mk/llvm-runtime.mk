@@ -1,0 +1,48 @@
+# ---- LLVM runtime stage (compiler-rt, libc++, libc++abi, libunwind) --------
+LLVM_RUNTIME_BUILD := $(B)/llvm-runtime-build
+LLVM_RUNTIME_INST  := $(B)/llvm-runtime-install
+LLVM_RUNTIME_RESOURCE_DIR := $(abspath $(LLVM_RUNTIME_INST))/usr/lib/clang/$(firstword $(subst ., ,$(LLVM_VERSION)))
+LLVM_RUNTIME_LIBDIR := $(abspath $(LLVM_RUNTIME_INST))/usr/lib
+
+$(STAMP)/llvm.runtime: $(STAMP)/llvm.unpacked $(CURDIR)/mk/llvm-runtime.mk $(CURDIR)/config.mk
+	rm -rf $(LLVM_RUNTIME_BUILD) $(LLVM_RUNTIME_INST)
+	$(LLVM_BUILD_ENV) \
+	  cmake -S $(LLVM_SRC)/llvm -B $(LLVM_RUNTIME_BUILD) \
+	    -DCMAKE_BUILD_TYPE=Release \
+	    -DCMAKE_INSTALL_PREFIX=/usr \
+	    -DCMAKE_C_COMPILER=cc \
+	    -DCMAKE_CXX_COMPILER=c++ \
+	    -DLLVM_ENABLE_PROJECTS=clang \
+	    -DLLVM_ENABLE_RUNTIMES='compiler-rt;libcxx;libcxxabi;libunwind' \
+	    -DLIBCXX_HAS_MUSL_LIBC=ON \
+	    -DLIBCXX_CXX_ABI=libcxxabi \
+	    -DLIBCXXABI_USE_LLVM_UNWINDER=ON \
+	    -DLIBCXXABI_USE_COMPILER_RT=ON \
+	    -DLIBUNWIND_USE_COMPILER_RT=ON \
+	    -DLIBCXX_ENABLE_SHARED=ON \
+	    -DLIBCXXABI_ENABLE_SHARED=ON \
+	    -DLIBUNWIND_ENABLE_SHARED=ON \
+	    -DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON \
+	    -DCOMPILER_RT_BUILD_BUILTINS=ON \
+	    -DCOMPILER_RT_BUILD_CRT=OFF \
+	    -DCOMPILER_RT_BUILD_SANITIZERS=OFF \
+	    -DCOMPILER_RT_BUILD_LIBFUZZER=OFF \
+	    -DCOMPILER_RT_BUILD_XRAY=OFF \
+	    -DCOMPILER_RT_BUILD_PROFILE=OFF \
+	    -DCOMPILER_RT_BUILD_MEMPROF=OFF \
+	    -DCOMPILER_RT_BUILD_ORC=OFF \
+	    -DCOMPILER_RT_BUILD_GWP_ASAN=OFF \
+	    -DCOMPILER_RT_BUILD_CTX_PROFILE=OFF \
+	    -DCOMPILER_RT_INCLUDE_TESTS=OFF \
+	    -DLLVM_TARGETS_TO_BUILD=X86 \
+	    -DLLVM_DEFAULT_TARGET_TRIPLE=$(TARGET) \
+	    -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=OFF \
+	    -DLLVM_INCLUDE_TESTS=OFF \
+	    -DLLVM_INCLUDE_EXAMPLES=OFF \
+	    -DLLVM_INCLUDE_BENCHMARKS=OFF \
+	    -DLLVM_INCLUDE_DOCS=OFF
+	DESTDIR=$(abspath $(LLVM_RUNTIME_INST)) \
+	  $(LLVM_BUILD_ENV) cmake --build $(LLVM_RUNTIME_BUILD) --target install-runtimes --parallel $(JOBS)
+	mkdir -p $(LLVM_RUNTIME_RESOURCE_DIR)/include
+	cp -a $(LLVM_SRC)/clang/lib/Headers/. $(LLVM_RUNTIME_RESOURCE_DIR)/include/
+	@touch $@
