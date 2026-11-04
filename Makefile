@@ -47,6 +47,7 @@ include mk/kernel.mk
 include mk/userland.mk
 include mk/busybox.mk
 include mk/toolchain.mk
+include mk/libatomic.mk
 include mk/gmake.mk
 include mk/rootfs.mk
 include mk/image.mk
