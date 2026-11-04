@@ -1,6 +1,7 @@
 # ---- rootfs ----------------------------------------------------------------
 UHOME        := $(ROOTFS)/home/$(MIN_USER)
 HOME_SCRIPTS := connect-eth0.sh connect-wifi.sh ark-add-test-repo.sh
+HOST_OPENSSL ?= openssl
 
 # Profile-specific parts of /etc/inittab.
 LOGIN_HINT     := root
@@ -88,6 +89,7 @@ $(STAMP)/rootfs.done: $(STAMP)/busybox.built $(STAMP)/profile $(CURDIR)/mk/rootf
 	  "alias c='clear'" \
 	  "alias dhcp='udhcpc'" \
 	  "alias dhcpcd='udhcpc'" \
+	  "alias shutdown='poweroff'" \
 	  'export EDITOR=vi' \
 	  'alias ..="cd .."' \
 	  'alias ...="cd ../.."' \
@@ -254,8 +256,8 @@ ifeq ($(PROFILE),minimal)
 	  > $(ROOTFS)/etc/os-release
 
 	days=$$(( $$(date +%s) / 86400 )); \
-	rh=$$(printf '%s' '$(ROOT_PASSWD)' | openssl passwd -6 -stdin); \
-	uh=$$(printf '%s' '$(USER_PASS)' | openssl passwd -6 -stdin); \
+	rh=$$(printf '%s' '$(ROOT_PASSWD)' | $(HOST_OPENSSL) passwd -6 -stdin); \
+	uh=$$(printf '%s' '$(USER_PASS)' | $(HOST_OPENSSL) passwd -6 -stdin); \
 	printf '%s\n' \
 	  'root:x:0:0:root:/root:/bin/sh' \
 	  '$(MIN_USER):x:$(MIN_UID):$(MIN_GID):$(MIN_USER):/home/$(MIN_USER):/bin/sh' \

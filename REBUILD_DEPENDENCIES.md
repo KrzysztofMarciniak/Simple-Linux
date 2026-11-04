@@ -24,6 +24,27 @@ archives to be retained in the checkout's `downloads/` directory.
 kernel/musl/LLVM-only build target. Recreating that ISO has further requirements
 listed below.
 
+The Minimal ISO also generates the upstream kernel, LLVM, and Clang manuals
+from their pinned source archives. This step uses host Python 3 and installs
+Sphinx 7.2.6, Docutils 0.20.1, Myst Parser 2.0.0, and PyYAML 6.0.2 into
+`build/` with pip. The ISO includes the `man` reader and pages for the kernel,
+installed LLVM/Clang tools, Python, GNU Make, scan-build, and Cryptsetup. The
+mandoc source archive is `mandoc-1.14.6.tar.gz`; the kernel's syscall API man
+pages are maintained separately in the upstream man-pages project. Mandoc
+requires zlib to read compressed manuals, so zlib 1.3.2 is cross-built and its
+shared library is staged into the ISO.
+
+OpenSSL 3.5.9 is also cross-built for musl and staged with its CLI, shared
+libraries, and headers.
+
+Cryptsetup 2.8.8 is cross-built with LUKS1/LUKS2 support. Its target libraries
+include device-mapper from LVM2 2.03.43, libuuid/libblkid from util-linux
+2.42.4, json-c 0.19, popt 1.19, and the staged OpenSSL. The cryptsetup release
+uses its bundled SSE-optimized Argon2 implementation. The kernel config enables
+device mapper, dm-crypt, and kernel keys; initramfs boot-time unlocking and the
+encrypted installer remain unimplemented. Building this package requires host
+`pkg-config` for its target-only dependency checks.
+
 ## Component requirements
 
 ### Linux kernel and installed headers
@@ -36,6 +57,12 @@ For the current x86_64 configuration, the build needs:
   corresponding GNU binutils tools.
 - Bash, Perl, Flex, and Bison for kernel build scripts and Kconfig. The
   project's configuration also uses `bc`; the BusyBox `bc` applet is present.
+- Perl 5.44.0 now has a Minimal-profile cross-build rule. It uses
+  perl-cross 1.6.5 to build its temporary host-side `miniperl` bootstrap and
+  the installed musl-target interpreter. Its `install` target also installs
+  Perl's upstream POD manuals into `/usr/share/man/man1` and `man3`, where the
+  Minimal `mandoc` reader can find them. It does not require or install a
+  separate host Perl.
 - libelf development files (`libelf.h` and the linkable `libelf` library).
   The current config enables the x86 ORC unwinder, and the x86 `objtool`
   build links with libelf. A runtime-only libelf library is not enough.
@@ -117,22 +144,22 @@ build environment is supplied again.
 | BusyBox `bc`, tar, gzip, bzip2, xz, `diff`, `patch` | Present | Useful for kernel scripts and unpacking sources. |
 | BusyBox `wget` | Present | Does not replace the repository's `curl` download rule. |
 | CMake 3.20+ and Python 3 | Missing | Required for the configured LLVM build. |
-| Bash, Perl, Flex, Bison | Missing | Kernel build prerequisites. BusyBox `ash` is not Bash. |
+| Bash, Flex, Bison | Missing | Kernel build prerequisites. BusyBox `ash` is not Bash. |
+| Perl 5.44.0 and manuals | Build rule added; unverified | Cross-built for musl with perl-cross 1.6.5; the package installs Perl's POD manuals under `/usr/share/man`. Its temporary host `miniperl` is only a build-time bootstrap. |
 | libelf headers and development linker library | Missing | Required by x86 `objtool` with the ORC unwinder. |
 | `pkg-config` | Missing | Required by the kernel's documented Kconfig checks/frontends. |
-| OpenSSL CLI | Missing | The rootfs recipe uses `openssl passwd -6`; the kernel does not need it for the inspected config. |
+| Target OpenSSL CLI | Missing in the inspected rootfs | The Minimal build now stages a musl OpenSSL CLI and libraries; it also supplies BusyBox's external `openssl s_client` runtime. |
 | curl | Missing | The repository source-download rule invokes `curl`. |
 | CA certificate bundle | Missing | Needed for authenticated HTTPS; BusyBox's internal TLS fallback does not verify peer certificates. |
 
-BusyBox provides `cryptpw`/`mkpasswd` with SHA-crypt support, which may be an
-alternative to `openssl passwd -6` for rootfs password generation. The current
-rootfs recipe still invokes OpenSSL; validate the generated hash format before
-changing that recipe.
+The rootfs Make recipe uses the **host** OpenSSL CLI to create shadow password
+hashes. It cannot run the musl-target OpenSSL binary being staged into the ISO;
+the host command remains an independent build prerequisite.
 
 The BusyBox HTTPS configuration also enables `FEATURE_WGET_OPENSSL`. That path
-uses an external `openssl s_client`; when it cannot run, BusyBox falls back to
-internal TLS that does not verify the server certificate. Installing a TLS
-library alone is not enough: verified downloads also need a trust store.
+uses an external `openssl s_client`; the target OpenSSL package supplies it.
+Certificate verification still needs a CA bundle, which is not included by
+this OpenSSL change.
 
 ## Offline source inputs and other build steps
 
@@ -143,6 +170,16 @@ archives in the checkout's `downloads/` directory:
 - `linux-6.18.59.tar.xz`
 - `musl-1.2.6.tar.gz`
 - `llvm-project-21.1.8.src.tar.xz`
+- `mandoc-1.14.6.tar.gz`
+- `zlib-1.3.2.tar.gz`
+- `openssl-3.5.9.tar.gz`
+- `perl-5.44.0.tar.gz`
+- `perl-cross-1.6.5.tar.gz`
+- `cryptsetup-2.8.8.tar.xz`
+- `LVM2.2.03.43.tgz`
+- `popt-1.19.tar.gz`
+- `json-c-0.19.tar.gz`
+- `util-linux-2.42.4.tar.xz`
 
 Rebuilding the full Minimal profile also needs the BusyBox, GNU Make, and Ark
 archives referenced by `mk/sources.mk`. The inspected host has these archives
@@ -153,8 +190,8 @@ the current archive formats.
 
 Fetching uncached sources from the installed system requires adding `curl` or
 changing the repository's download rule. BusyBox `wget` is present but is not
-called by that rule; its current HTTPS configuration also lacks OpenSSL and a
-CA bundle in the inspected rootfs.
+called by that rule. Its external OpenSSL client is supplied by the Minimal
+OpenSSL package; authenticated connections still need a CA bundle.
 
 Finally, rebuilding the bootable ISO is distinct from compiling the three
 components. The image rules invoke `grub-mkrescue` (with a suitable ISO
@@ -181,3 +218,7 @@ compilers themselves.
   `build/src/llvm-project-21.1.8.src/clang/lib/Analysis/FlowSensitive/CMakeLists.txt`.
 - BusyBox applet and HTTPS configuration: `busybox.config`; HTTPS behavior:
   `build/src/busybox-1.38.0/networking/wget.c`.
+- Perl cross-build integration: `mk/perl.mk`, `mk/sources.mk`, and the
+  perl-cross 1.6.5 release, which explicitly supports Perl 5.44.0.
+- LUKS tools and kernel configuration: `mk/luks.mk`, `mk/kernel.mk`, and
+  `mk/sources.mk`.

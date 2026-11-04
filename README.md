@@ -67,6 +67,16 @@ BusyBox independently with `LLVM_CCACHE_BUILD=ON/OFF` and
 `BUSYBOX_CCACHE=ON/OFF`. Inspect cache usage with `ccache -s`. The cache lives
 outside `build/` by default, so `make clean` does not remove it.
 
+A Python 3 interpreter is also required on the build host to compile LLVM/Clang.
+The Minimal ISO generates LLVM/Clang manual pages with Sphinx 7.2.6,
+Docutils 0.20.1, Myst Parser 2.0.0, and PyYAML 6.0.2,
+installed into an isolated build-directory environment using host `python3`.
+The Minimal cryptsetup cross-build also requires host `pkg-config` for its
+target-library checks.
+This build-time requirement is separate from installing Python in the Minimal
+profile; see
+[Minimal rebuild dependencies](REBUILD_DEPENDENCIES.md).
+
 The build keeps each component's upstream optimization defaults rather than
 forcing `-O3` or `-march=native`: these can increase compile time and reduce
 binary portability without reliably improving the build. The kernel build also
@@ -94,6 +104,14 @@ The minimum bootable system:
 - BusyBox
 
 ### Minimal
+
+- zlib 1.3.2 — shared library used by the `man` reader to decompress manuals.
+- OpenSSL 3.5.9 — command-line tools, libraries, and development headers.
+- Perl 5.44.0 — interpreter and core modules for musl; built with the
+  cross-compilation support in perl-cross 1.6.5.
+- Cryptsetup 2.8.8 — LUKS1/LUKS2 management, with kernel dm-crypt and device
+  mapper enabled. Encrypted-root installation and boot-time unlocking are not
+  wired up yet.
 
 ## Roadmap
 

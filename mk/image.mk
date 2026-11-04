@@ -1,5 +1,10 @@
 # ---- initramfs (gen_init_cpio creates /dev nodes without root) -------------
 $(INITRD): $(STAMP)/rootfs.done $(STAMP)/linux.unpacked $(CURDIR)/mk/image.mk
+ifeq ($(PROFILE),minimal)
+$(INITRD): $(STAMP)/manpages.rootfs
+$(INITRD): $(STAMP)/openssl.rootfs
+$(INITRD): $(STAMP)/luks.rootfs
+endif
 	cc -o $(B)/gen_init_cpio $(LINUX_SRC)/usr/gen_init_cpio.c
 	cd $(ROOTFS) && { \
 	  find . -mindepth 1 -type d -printf 'dir /%P %m 0 0\n'; \

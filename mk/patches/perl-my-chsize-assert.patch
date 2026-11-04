@@ -1,0 +1,7 @@
+--- a/doio.c
++++ b/doio.c
+@@ -2117,3 +2117,2 @@
+-    PERL_ARGS_ASSERT_MY_CHSIZE;
+-
+ #  ifdef F_FREESP
++    PERL_ARGS_ASSERT_MY_CHSIZE;

@@ -10,7 +10,8 @@ $(STAMP)/kernel.built: $(STAMP)/linux.unpacked $(STAMP)/target.ccache $(CURDIR)/
 	@mkdir -p $(KOUT)
 	$(MAKE) -C $(LINUX_SRC) O=$(KOUT) LLVM=1 ARCH=$(KARCH) defconfig
 	$(LINUX_SRC)/scripts/config --file $(KOUT)/.config \
-	    --enable E1000 --enable E1000E --enable R8169 --enable VIRTIO_NET
+	    --enable E1000 --enable E1000E --enable R8169 --enable VIRTIO_NET \
+	    --enable KEYS --enable BLK_DEV_DM --enable DM_CRYPT
 	$(MAKE) -C $(LINUX_SRC) O=$(KOUT) LLVM=1 ARCH=$(KARCH) olddefconfig
 	KBUILD_BUILD_TIMESTAMP='' $(MAKE) -C $(LINUX_SRC) O=$(KOUT) LLVM=1 ARCH=$(KARCH) \
 	    CC="$(strip $(if $(filter ON,$(TARGET_CCACHE)),$(CCACHE)) clang)" \
