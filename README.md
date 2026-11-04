@@ -76,6 +76,8 @@ target-library checks.
 This build-time requirement is separate from installing Python in the Minimal
 profile; see
 [Minimal rebuild dependencies](REBUILD_DEPENDENCIES.md).
+The ISO build also requires host Bison and Flex for GRUB's generated parsers;
+the build compiles GRUB's native `grub-mkrescue` and xorriso stack from source.
 
 The build keeps each component's upstream optimization defaults rather than
 forcing `-O3` or `-march=native`: these can increase compile time and reduce
@@ -106,12 +108,24 @@ The minimum bootable system:
 ### Minimal
 
 - zlib 1.3.2 — shared library used by the `man` reader to decompress manuals.
-- OpenSSL 3.5.9 — command-line tools, libraries, and development headers.
+- OpenSSL 3.5.9 — command-line tools, libraries, and development headers;
+  Mozilla CA certificates are staged for verified HTTPS.
 - Perl 5.44.0 — interpreter and core modules for musl; built with the
   cross-compilation support in perl-cross 1.6.5.
+- GRUB 2.14 — musl-target GRUB tools and BIOS (`i386-pc`) and UEFI
+  (`x86_64-efi`) modules. Native GRUB and xorriso tools are built separately
+  for generating the ISO. Boot entries require PBKDF2 authentication; this
+  protects the menu but does not encrypt the ISO contents.
+- xorriso 1.5.8 — ISO backend, built from libburn, libisofs, and libisoburn
+  source for both the build host and Minimal target.
+- M4 1.4.20, Bison 3.8.2, Flex 2.6.4, and pkgconf 2.3.0 — target-side tools
+  for rebuilding GRUB and its dependencies from the installed system.
+- kmod 34 and mkinitrd — kernel module tools, modules, and a BusyBox-based
+  initramfs generator for Minimal. The ISO still boots its complete rootfs
+  directly from the existing initramfs.
 - Cryptsetup 2.8.8 — LUKS1/LUKS2 management, with kernel dm-crypt and device
-  mapper enabled. Encrypted-root installation and boot-time unlocking are not
-  wired up yet.
+  mapper enabled. mkinitrd includes an optional cryptsetup hook for generating
+  an initramfs to boot a separate encrypted root filesystem.
 
 ## Roadmap
 
@@ -165,6 +179,13 @@ kernel, musl, and LLVM/Clang prerequisites and offline source-archive checklist.
 - [ ] Verify that package builds work without an active internet connection when their sources and dependencies are available locally.
 - [ ] Add a `run-me.sh` script documenting how to rebuild the installed system and its components.
 - [ ] Test rebuilding the system from a clean installation.
+
+### Update ownership
+
+- [ ] Provide `update-system` for system updates, including Clang.
+- [ ] Provide `update-musl` and `update-kernel` for updating musl and the kernel.
+- [ ] Implement a shared library for the `update-*` programs.
+- [ ] Leave all other software updates under Ark.
 
 ### 5. Service management
 
@@ -362,6 +383,7 @@ Minimal, extended with a lightweight graphical environment and additional applic
 - [img](https://github.com/KrzysztofMarciniak/img) — image viewer
 - [redact](https://github.com/KrzysztofMarciniak/redact)
 - [screenc](https://github.com/KrzysztofMarciniak/screenc)
+- [herbe](https://github.com/dudik/herbe)
 
 #### Networking
 

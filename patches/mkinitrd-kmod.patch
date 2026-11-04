@@ -1,0 +1,10 @@
+--- a/mkinitrd
++++ b/mkinitrd
+@@ -7,2 +7,5 @@
+-		kmodpath=$(modprobe -S "$K" -l "$kmod" 2>/dev/null) || continue
+-		path=/lib/modules/$K/${kmodpath}
++		path=$(modinfo -k "$K" -F filename "$kmod" 2>/dev/null) || continue
++		case $path in
++			/lib/modules/"$K"/*) ;;
++			*) continue ;;
++		esac

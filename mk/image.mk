@@ -3,7 +3,10 @@ $(INITRD): $(STAMP)/rootfs.done $(STAMP)/linux.unpacked $(CURDIR)/mk/image.mk
 ifeq ($(PROFILE),minimal)
 $(INITRD): $(STAMP)/manpages.rootfs
 $(INITRD): $(STAMP)/openssl.rootfs
+$(INITRD): $(STAMP)/ca-certs.rootfs
 $(INITRD): $(STAMP)/luks.rootfs
+$(INITRD): $(STAMP)/mkinitrd.rootfs
+$(INITRD): $(STAMP)/grub.rootfs
 endif
 	cc -o $(B)/gen_init_cpio $(LINUX_SRC)/usr/gen_init_cpio.c
 	cd $(ROOTFS) && { \
@@ -21,14 +24,29 @@ endif
 # ---- ISO -------------------------------------------------------------------
 iso: $(ISO)
 
-$(ISO): $(STAMP)/kernel.built $(INITRD) $(CURDIR)/mk/image.mk $(CURDIR)/config.mk
+$(ISO): $(STAMP)/kernel.built $(INITRD) $(STAMP)/grub.host.efi.built \
+        $(CURDIR)/mk/image.mk $(CURDIR)/config.mk
 	rm -rf $(B)/iso
 	mkdir -p $(B)/iso/boot/grub
 	cp $(KOUT)/arch/$(KARCH)/boot/bzImage $(B)/iso/boot/vmlinuz
 	cp $(INITRD) $(B)/iso/boot/initramfs.gz
-	printf 'set timeout=5\nset debug=linux\nmenuentry "%s" {\n  linux /boot/vmlinuz rdinit=/init ignore_loglevel loglevel=8 earlyprintk=vga,keep earlyprintk=efi,keep earlyprintk=ttyS0,115200 console=ttyS0,115200 console=tty0\n  initrd /boot/initramfs.gz\n}\n' \
-	    "$(NAME)" > $(B)/iso/boot/grub/grub.cfg
-	grub-mkrescue -o $@ $(B)/iso
+	printf '%s\n' \
+	  'set timeout=5' \
+	  'set debug=linux' \
+	  'insmod serial' \
+	  'serial --unit=0 --speed=115200' \
+	  'terminal_input --append serial' \
+	  'terminal_output --append serial' \
+	  'set superusers="root"' \
+	  'insmod password_pbkdf2' \
+	  'password_pbkdf2 root grub.pbkdf2.sha512.100000.4C9BE8842EFE37E2CDB67FEA57C424852393FE822CE0D5833B9CBFC78825A2138FBAC83C423F316F48C28E8516108D8CB3E47EE8953D2213D9918DEE5AB64DBC.90C499431AD930CEC9F447BB70FFE1A92EFB05AC4CB05786DB862D7E91376DECA9A5A26D2038638E7B0EDDB70B756A3254FDC1656652DBA4380CB204FA7E221B' \
+	  'menuentry "$(NAME)" {' \
+	  '  linux /boot/vmlinuz rdinit=/init ignore_loglevel loglevel=8 earlyprintk=vga,keep earlyprintk=efi,keep earlyprintk=ttyS0,115200 console=tty0 console=ttyS0,115200' \
+	  '  initrd /boot/initramfs.gz' \
+	  '}' > $(B)/iso/boot/grub/grub.cfg
+	LD_LIBRARY_PATH="$(GRUB_HOST_LIB):$${LD_LIBRARY_PATH}" \
+	  $(GRUB_HOST_PREFIX)/bin/grub-mkrescue \
+	  --xorriso=$(GRUB_HOST_LIBISOBURN_INST)/usr/bin/xorriso -o $@ $(B)/iso
 
 clean:
 	rm -rf $(B) $(ISO)

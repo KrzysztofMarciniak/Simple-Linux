@@ -20,6 +20,26 @@ JSON_C_RELEASE := json-c-0.19-20260627
 JSON_C_URL := https://github.com/json-c/json-c/releases/download/$(JSON_C_RELEASE)/json-c-$(JSON_C_VERSION).tar.gz
 UTIL_LINUX_VERSION := 2.42.4
 UTIL_LINUX_URL := https://www.kernel.org/pub/linux/utils/util-linux/v2.42/util-linux-$(UTIL_LINUX_VERSION).tar.xz
+KMOD_VERSION := 34
+KMOD_URL := https://www.kernel.org/pub/linux/utils/kernel/kmod/kmod-$(KMOD_VERSION).tar.xz
+MKINITRD_COMMIT := f825813f356bc52925d9654c7b9ad65b15f0fda7
+MKINITRD_URL := https://codeberg.org/emmett1/mkinitrd/archive/$(MKINITRD_COMMIT).tar.gz
+GRUB_VERSION := 2.14
+GRUB_URL := https://ftp.gnu.org/gnu/grub/grub-$(GRUB_VERSION).tar.xz
+LIBBURN_VERSION := 1.5.8
+LIBBURN_URL := https://files.libburnia-project.org/releases/libburn-$(LIBBURN_VERSION).tar.gz
+LIBISOFS_VERSION := 1.5.8.pl02
+LIBISOFS_URL := https://files.libburnia-project.org/releases/libisofs-$(LIBISOFS_VERSION).tar.gz
+LIBISOBURN_VERSION := 1.5.8.pl02
+LIBISOBURN_URL := https://files.libburnia-project.org/releases/libisoburn-$(LIBISOBURN_VERSION).tar.gz
+M4_VERSION := 1.4.20
+M4_URL := https://ftp.gnu.org/gnu/m4/m4-$(M4_VERSION).tar.xz
+BISON_VERSION := 3.8.2
+BISON_URL := https://ftp.gnu.org/gnu/bison/bison-$(BISON_VERSION).tar.xz
+FLEX_VERSION := 2.6.4
+FLEX_URL := https://github.com/westes/flex/releases/download/v$(FLEX_VERSION)/flex-$(FLEX_VERSION).tar.gz
+PKGCONF_VERSION := 2.3.0
+PKGCONF_URL := https://distfiles.ariadne.space/pkgconf/pkgconf-$(PKGCONF_VERSION).tar.xz
 
 define PKG
 $(DL)/$(notdir $(2)):
@@ -49,6 +69,16 @@ $(eval $(call PKG,lvm2,$(LVM2_URL)))
 $(eval $(call PKG,popt,$(POPT_URL)))
 $(eval $(call PKG,json-c,$(JSON_C_URL)))
 $(eval $(call PKG,util-linux,$(UTIL_LINUX_URL)))
+$(eval $(call PKG,kmod,$(KMOD_URL)))
+$(eval $(call PKG,mkinitrd,$(MKINITRD_URL)))
+$(eval $(call PKG,grub,$(GRUB_URL)))
+$(eval $(call PKG,libburn,$(LIBBURN_URL)))
+$(eval $(call PKG,libisofs,$(LIBISOFS_URL)))
+$(eval $(call PKG,libisoburn,$(LIBISOBURN_URL)))
+$(eval $(call PKG,m4,$(M4_URL)))
+$(eval $(call PKG,bison,$(BISON_URL)))
+$(eval $(call PKG,flex,$(FLEX_URL)))
+$(eval $(call PKG,pkgconf,$(PKGCONF_URL)))
 
 LINUX_SRC   := $(SRC)/linux-$(LINUX_VERSION)
 MUSL_SRC    := $(SRC)/musl-$(MUSL_VERSION)
@@ -67,3 +97,13 @@ LVM2_SRC := $(SRC)/LVM2.$(LVM2_VERSION)
 POPT_SRC := $(SRC)/popt-$(POPT_VERSION)
 JSON_C_SRC := $(SRC)/json-c-$(JSON_C_VERSION)
 UTIL_LINUX_SRC := $(SRC)/util-linux-$(UTIL_LINUX_VERSION)
+KMOD_SRC := $(SRC)/kmod-$(KMOD_VERSION)
+MKINITRD_SRC := $(SRC)/mkinitrd
+GRUB_SRC := $(SRC)/grub-$(GRUB_VERSION)
+LIBBURN_SRC := $(SRC)/libburn-$(LIBBURN_VERSION)
+LIBISOFS_SRC := $(SRC)/libisofs-1.5.8
+LIBISOBURN_SRC := $(SRC)/libisoburn-1.5.8
+M4_SRC := $(SRC)/m4-$(M4_VERSION)
+BISON_SRC := $(SRC)/bison-$(BISON_VERSION)
+FLEX_SRC := $(SRC)/flex-$(FLEX_VERSION)
+PKGCONF_SRC := $(SRC)/pkgconf-$(PKGCONF_VERSION)

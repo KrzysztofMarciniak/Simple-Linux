@@ -54,5 +54,9 @@ include mk/python.mk
 include mk/image.mk
 include mk/manpages.mk
 include mk/openssl.mk
+include mk/ca-certs.mk
 include mk/perl.mk
 include mk/luks.mk
+include mk/mkinitrd.mk
+include mk/grub-tools.mk
+include mk/grub.mk

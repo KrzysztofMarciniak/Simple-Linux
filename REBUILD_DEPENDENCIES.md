@@ -1,8 +1,9 @@
 # Minimal self-rebuild dependencies
 
 This is an inventory of what the installed Minimal system needs to rebuild the
-kernel, musl, and LLVM/Clang using the repository's current configuration. It
-also separates the extra inputs needed to fetch sources or recreate the ISO.
+kernel, musl, LLVM/Clang, and bootloader using the repository's current
+configuration. It also separates the extra inputs needed to fetch sources or
+recreate the ISO.
 The inventory describes the inspected staged rootfs; package and configuration
 changes can make it stale.
 
@@ -15,10 +16,11 @@ zstd, libxml2, and terminfo support.
 
 The staged rootfs has the Clang toolchain, GNU Make, and several useful BusyBox
 applets, but it is **not yet sufficient to rebuild all three components**.
-The most important gaps are CMake and Python for LLVM; Bash, Perl, Flex, Bison,
-and libelf development files for the kernel; and the `llvm-readelf` executable
-expected by Kbuild. Offline rebuilding additionally requires the source
-archives to be retained in the checkout's `downloads/` directory.
+The most important gaps are CMake and Python for LLVM; Bash and libelf
+development files for the kernel; Meson and Ninja for kmod; and the
+`llvm-readelf` executable expected by Kbuild. Offline rebuilding additionally
+requires the source archives to be retained in the checkout's `downloads/`
+directory.
 
 `make minimal` builds the Minimal profile ISO and its components; it is not a
 kernel/musl/LLVM-only build target. Recreating that ISO has further requirements
@@ -35,15 +37,42 @@ requires zlib to read compressed manuals, so zlib 1.3.2 is cross-built and its
 shared library is staged into the ISO.
 
 OpenSSL 3.5.9 is also cross-built for musl and staged with its CLI, shared
-libraries, and headers.
+libraries, and headers. A pinned Mozilla CA bundle is installed at
+`/etc/ssl/cert.pem` for BusyBox wget's verified OpenSSL TLS helper.
+
+### GRUB and ISO generation
+
+The ISO build source-builds native GRUB 2.14 tools and xorriso 1.5.8 for the
+build host. GRUB is configured separately for `i386-pc` and `x86_64-efi`, so
+`grub-mkrescue` can produce an ISO that boots on BIOS and UEFI systems. The
+Minimal target also receives GRUB utilities and modules for both platforms,
+plus a musl-target xorriso stack.
+
+The xorriso stack is libburn 1.5.8, libisofs 1.5.8.pl02, and libisoburn
+1.5.8.pl02. Readline, ACL, and zlib integrations are disabled to avoid
+additional runtime libraries. GRUB NLS, device-mapper integration, and font
+generation are disabled. The boot menu outputs to VGA and the 115200-baud
+serial console, and boot entries require PBKDF2 authentication.
+
+The Minimal target also receives M4 1.4.20, Bison 3.8.2, Flex 2.6.4, and
+pkgconf 2.3.0 (`pkg-config`) so GRUB and its xorriso dependencies can be
+rebuilt there. The initial host build still needs host Bison and Flex for
+generated sources, host `pkg-config`, and Meson 0.61 or newer plus Ninja for
+the kmod build. These are build-host tools, not target binaries. The kmod
+recipe uses its upstream Meson build and disables optional compression and
+signature libraries, so kmod does not add target dependencies on zlib, xz,
+zstd, or OpenSSL.
 
 Cryptsetup 2.8.8 is cross-built with LUKS1/LUKS2 support. Its target libraries
 include device-mapper from LVM2 2.03.43, libuuid/libblkid from util-linux
 2.42.4, json-c 0.19, popt 1.19, and the staged OpenSSL. The cryptsetup release
 uses its bundled SSE-optimized Argon2 implementation. The kernel config enables
-device mapper, dm-crypt, and kernel keys; initramfs boot-time unlocking and the
-encrypted installer remain unimplemented. Building this package requires host
-`pkg-config` for its target-only dependency checks.
+device mapper, dm-crypt, and kernel keys. The Minimal profile stages the kernel
+modules, kmod tools, and BusyBox-based mkinitrd generator, whose optional
+cryptsetup hook can unlock a separate encrypted root. The ISO still boots its
+complete rootfs from the existing generated initramfs; that hook is not enabled
+for the ISO boot path. Building cryptsetup requires host `pkg-config` for its
+target-only dependency checks.
 
 ## Component requirements
 
@@ -144,13 +173,19 @@ build environment is supplied again.
 | BusyBox `bc`, tar, gzip, bzip2, xz, `diff`, `patch` | Present | Useful for kernel scripts and unpacking sources. |
 | BusyBox `wget` | Present | Does not replace the repository's `curl` download rule. |
 | CMake 3.20+ and Python 3 | Missing | Required for the configured LLVM build. |
-| Bash, Flex, Bison | Missing | Kernel build prerequisites. BusyBox `ash` is not Bash. |
+| Bash | Missing | Kernel build prerequisite. BusyBox `ash` is not Bash. |
+| Meson 0.61+ and Ninja | Missing | Host build tools for the kmod cross-build; Python 3 is present. |
+| M4, Bison, Flex | Source build rules added; unverified | Staged for rebuilding GRUB from the Minimal target. |
+| GRUB 2.14 and xorriso 1.5.8 target tools | Source build rules added; unverified | BIOS/UEFI modules and the musl xorriso dependency stack are staged. |
+| kmod 34 and Linux kernel modules | Source build rules added; unverified | Cross-built with Meson; optional compression and signature libraries are disabled for the current uncompressed, unsigned kernel modules. |
+| mkinitrd | Source pinned and staged; unverified | Runtime generator for a separate root filesystem; its optional cryptsetup hook is not used by the current ISO boot path. |
+| Mozilla CA certificate bundle | Pinned and staged; unverified | Installed at OpenSSL's default trust path for certificate-verified HTTPS. |
 | Perl 5.44.0 and manuals | Build rule added; unverified | Cross-built for musl with perl-cross 1.6.5; the package installs Perl's POD manuals under `/usr/share/man`. Its temporary host `miniperl` is only a build-time bootstrap. |
 | libelf headers and development linker library | Missing | Required by x86 `objtool` with the ORC unwinder. |
-| `pkg-config` | Missing | Required by the kernel's documented Kconfig checks/frontends. |
+| `pkg-config` | Source build rule added; unverified | Provided by target pkgconf 2.3.0. |
 | Target OpenSSL CLI | Missing in the inspected rootfs | The Minimal build now stages a musl OpenSSL CLI and libraries; it also supplies BusyBox's external `openssl s_client` runtime. |
 | curl | Missing | The repository source-download rule invokes `curl`. |
-| CA certificate bundle | Missing | Needed for authenticated HTTPS; BusyBox's internal TLS fallback does not verify peer certificates. |
+| CA certificate bundle | Source added; unverified | Needed for BusyBox wget's verified external OpenSSL TLS helper. |
 
 The rootfs Make recipe uses the **host** OpenSSL CLI to create shadow password
 hashes. It cannot run the musl-target OpenSSL binary being staged into the ISO;
@@ -158,8 +193,8 @@ the host command remains an independent build prerequisite.
 
 The BusyBox HTTPS configuration also enables `FEATURE_WGET_OPENSSL`. That path
 uses an external `openssl s_client`; the target OpenSSL package supplies it.
-Certificate verification still needs a CA bundle, which is not included by
-this OpenSSL change.
+The pinned Mozilla CA bundle is staged at OpenSSL's default certificate path,
+`/etc/ssl/cert.pem`, so HTTPS peer verification can succeed.
 
 ## Offline source inputs and other build steps
 
@@ -180,6 +215,17 @@ archives in the checkout's `downloads/` directory:
 - `popt-1.19.tar.gz`
 - `json-c-0.19.tar.gz`
 - `util-linux-2.42.4.tar.xz`
+- `kmod-34.tar.xz`
+- `f825813f356bc52925d9654c7b9ad65b15f0fda7.tar.gz` (mkinitrd)
+- `cacert-2026-10-20.pem`
+- `grub-2.14.tar.xz`
+- `libburn-1.5.8.tar.gz`
+- `libisofs-1.5.8.pl02.tar.gz`
+- `libisoburn-1.5.8.pl02.tar.gz`
+- `m4-1.4.20.tar.xz`
+- `bison-3.8.2.tar.xz`
+- `flex-2.6.4.tar.gz`
+- `pkgconf-2.3.0.tar.xz`
 
 Rebuilding the full Minimal profile also needs the BusyBox, GNU Make, and Ark
 archives referenced by `mk/sources.mk`. The inspected host has these archives
@@ -194,11 +240,11 @@ called by that rule. Its external OpenSSL client is supplied by the Minimal
 OpenSSL package; authenticated connections still need a CA bundle.
 
 Finally, rebuilding the bootable ISO is distinct from compiling the three
-components. The image rules invoke `grub-mkrescue` (with a suitable ISO
-backend), and rootfs regeneration invokes the OpenSSL password-hash command
-described above. These are additional requirements for the complete
-`make minimal` workflow, not prerequisites of the kernel, musl, or LLVM
-compilers themselves.
+components. The image rules build native `grub-mkrescue` and xorriso from the
+pinned sources described above. Rootfs regeneration invokes the OpenSSL
+password-hash command described above. These are additional requirements for
+the complete `make minimal` workflow, not prerequisites of the kernel, musl,
+or LLVM compilers themselves.
 
 ## Source references
 
@@ -222,3 +268,5 @@ compilers themselves.
   perl-cross 1.6.5 release, which explicitly supports Perl 5.44.0.
 - LUKS tools and kernel configuration: `mk/luks.mk`, `mk/kernel.mk`, and
   `mk/sources.mk`.
+- kmod's Meson build and options: `mk/mkinitrd.mk`,
+  `build/src/kmod-34/meson.build`, and `build/src/kmod-34/meson_options.txt`.

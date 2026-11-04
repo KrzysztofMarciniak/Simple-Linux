@@ -48,6 +48,7 @@ $(STAMP)/mandoc.built: $(STAMP)/mandoc.unpacked $(STAMP)/zlib.built \
 	  'MANDIR="/usr/share/man"' \
 	  'MANPATH_DEFAULT="/usr/share/man"' \
 	  'MANPATH_BASE="/usr/share/man"' \
+	  'HAVE_LESS_T=0' \
 	  > $(MANDOC_SRC)/configure.local
 	cd $(MANDOC_SRC) && ./configure
 	$(MAKE) -C $(MANDOC_SRC) -j$(JOBS)

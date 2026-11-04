@@ -3,4 +3,7 @@ qemu-system-x86_64 \
   -cdrom SimpleLinux-0.1.iso \
   -boot d \
   -m 2G \
+  -display gtk \
+  -vga std \
+  -no-reboot \
   -serial stdio
