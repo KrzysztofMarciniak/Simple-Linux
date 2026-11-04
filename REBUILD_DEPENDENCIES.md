@@ -16,8 +16,8 @@ zstd, libxml2, and terminfo support.
 
 The staged rootfs has the Clang toolchain, GNU Make, and several useful BusyBox
 applets, but it is **not yet sufficient to rebuild all three components**.
-The most important gaps are CMake and Python for LLVM; Bash and libelf
-development files for the kernel; Meson and Ninja for kmod; and the
+The most important gaps are CMake and Python for LLVM; libelf development
+files for the kernel; Meson and Ninja for kmod; and the
 `llvm-readelf` executable expected by Kbuild. Offline rebuilding additionally
 requires the source archives to be retained in the checkout's `downloads/`
 directory.
@@ -84,8 +84,10 @@ For the current x86_64 configuration, the build needs:
   `clang++`, `ld.lld`, `llvm-ar`, `llvm-nm`, `llvm-strip`, `llvm-objcopy`,
   `llvm-objdump`, and `llvm-readelf`. LLVM mode substitutes these for the
   corresponding GNU binutils tools.
-- Bash, Perl, Flex, and Bison for kernel build scripts and Kconfig. The
-  project's configuration also uses `bc`; the BusyBox `bc` applet is present.
+- Perl, Flex, and Bison for kernel build scripts and Kconfig. The project
+  edits its selected kernel config with POSIX shell and `sed`, avoiding the
+  upstream Bash-based `scripts/config` helper. The project's configuration
+  also uses `bc`; the BusyBox `bc` applet is present.
 - Perl 5.44.0 now has a Minimal-profile cross-build rule. It uses
   perl-cross 1.6.5 to build its temporary host-side `miniperl` bootstrap and
   the installed musl-target interpreter. Its `install` target also installs
@@ -173,7 +175,7 @@ build environment is supplied again.
 | BusyBox `bc`, tar, gzip, bzip2, xz, `diff`, `patch` | Present | Useful for kernel scripts and unpacking sources. |
 | BusyBox `wget` | Present | Does not replace the repository's `curl` download rule. |
 | CMake 3.20+ and Python 3 | Missing | Required for the configured LLVM build. |
-| Bash | Missing | Kernel build prerequisite. BusyBox `ash` is not Bash. |
+| Bash | Not required for the configured build | The project avoids upstream Bash-only helper scripts; optional kernel maintenance targets may still use Bash. |
 | Meson 0.61+ and Ninja | Missing | Host build tools for the kmod cross-build; Python 3 is present. |
 | M4, Bison, Flex | Source build rules added; unverified | Staged for rebuilding GRUB from the Minimal target. |
 | GRUB 2.14 and xorriso 1.5.8 target tools | Source build rules added; unverified | BIOS/UEFI modules and the musl xorriso dependency stack are staged. |
