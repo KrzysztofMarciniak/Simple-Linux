@@ -90,6 +90,7 @@ $(STAMP)/rootfs.done: $(STAMP)/busybox.built $(STAMP)/profile $(CURDIR)/mk/rootf
 	  "alias dhcp='udhcpc'" \
 	  "alias dhcpcd='udhcpc'" \
 	  "alias shutdown='poweroff'" \
+	  "alias whoami='id -un'" \
 	  'export EDITOR=vi' \
 	  'alias ..="cd .."' \
 	  'alias ...="cd ../.."' \

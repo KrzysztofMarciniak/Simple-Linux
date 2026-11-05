@@ -224,7 +224,7 @@ $(STAMP)/xorriso.target.rootfs: $(STAMP)/libisoburn.target.built $(STAMP)/rootfs
 	@touch $@
 
 # GRUB utility binaries run on musl; firmware code is built for the selected platform.
-$(STAMP)/grub.target.pc.built: $(STAMP)/grub.unpacked $(STAMP)/xorriso.target.rootfs \
+$(STAMP)/grub.target.pc.built: $(STAMP)/grub.unpacked \
                                $(STAMP)/musl.built $(STAMP)/llvm.built $(STAMP)/target.ccache \
                                $(CURDIR)/mk/grub.mk $(CURDIR)/mk/sources.mk
 	rm -rf $(B)/grub-target-pc-build $(GRUB_TARGET_INST)
